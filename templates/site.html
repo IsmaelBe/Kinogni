@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MovieRatings</title>
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+  <!-- NAVBAR -->
+  <nav class="flex justify-between items-center bg-gray-200 px-6 py-4 shadow">
+    <div class="text-2xl font-bold text-blue-700">MovieRatings</div>
+
+    <ul class="flex space-x-6">
+      <li><button id="loginBtn" class="text-gray-700 hover:text-blue-600 font-medium">Connexion</button></li>
+      <li><button id="registerBtn" class="text-gray-700 hover:text-blue-600 font-medium">Inscription</button></li>
+      <li><a href="#" class="text-gray-700 hover:text-blue-600 font-medium">Link</a></li>
+      <li><a href="#" class="text-gray-400 cursor-not-allowed">Disabled</a></li>
+    </ul>
+  </nav>
+
+  <section class="text-center py-20 bg-white shadow-inner">
+    <h1 class="text-4xl font-bold text-blue-600">MovieRatings</h1>
+    <p class="mt-4 text-gray-600">Plateforme d’analyse des avis de films.</p>
+  </section>
+
+  <div class="flex justify-center gap-4 my-10 max-w-6xl mx-auto px-4">
+    <div class="bg-gray-200 px-6 py-10 w-1/2 rounded-lg shadow">
+      MovieRatings est une plateforme expérimentale d’analyse des avis de films.
+      Ce site a été développé dans le cadre d’un projet universitaire en informatique et utilise des technologies
+      d’intelligence artificielle pour analyser le sentiment exprimé dans les critiques de films.<br><br>Les avis sont
+      récupérés automatiquement depuis l’API publique The Movie Database (TMDB), puis traités par un modèle de langage
+      (BERT / TextBlob) afin de déterminer si le ton général est positif, négatif ou neutre.
+    </div>
+
+    <div class="bg-gray-200 px-6 py-10 w-1/2 rounded-lg shadow">
+      L'application fonctionne comme suit :<br><br>
+
+      L'utilisateur saisit le titre d’un film.<br>
+      MovieRatings interroge l’API publique The Movie Database (TMDB) pour récupérer les avis associés à ce film.<br>
+      Chaque avis est analysé automatiquement grâce à un modèle de langage (BERT/TextBlob), qui détermine si le ton
+      général est positif, négatif ou neutre.<br><br>
+      Les résultats de cette analyse sont enregistrés dans une base de données SQLite et présentés sous forme de
+      statistiques et graphiques pour une visualisation claire.<br>
+    </div>
+  </div>
+
+  <div class="flex align items justify-center">
+    <div class="bg-white px-6 py-4 rounded shadow w-auto">
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg w-80 shadow-lg">
+      <h2 class="text-2xl font-bold mb-4 text-center">Connexion</h2>
+      <input type="email" placeholder="Email" class="w-full mb-3 p-2 border rounded">
+      <input type="password" placeholder="Mot de passe" class="w-full mb-3 p-2 border rounded">
+      <button class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Se connecter</button>
+      <button id="closeLogin" class="mt-3 w-full text-gray-500 hover:text-gray-700">Fermer</button>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="registerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg w-80 shadow-lg">
+      <h2 class="text-2xl font-bold mb-4 text-center">Inscription</h2>
+      <input type="text" placeholder="Nom complet" class="w-full mb-3 p-2 border rounded">
+      <input type="email" placeholder="Email" class="w-full mb-3 p-2 border rounded">
+      <input type="password" placeholder="Mot de passe" class="w-full mb-3 p-2 border rounded">
+      <button class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">S'inscrire</button>
+      <button id="closeRegister" class="mt-3 w-full text-gray-500 hover:text-gray-700">Fermer</button>
+    </div>
+  </div>
+
+  <style>
+    * {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+  <!-- JS pour modales -->
+  <script>
+    const loginModal = document.getElementById('loginModal');
+    const registerModal = document.getElementById('registerModal');
+
+    document.getElementById('loginBtn').onclick = () => loginModal.classList.remove('hidden');
+    document.getElementById('registerBtn').onclick = () => registerModal.classList.remove('hidden');
+
+    document.getElementById('closeLogin').onclick = () => loginModal.classList.add('hidden');
+    document.getElementById('closeRegister').onclick = () => registerModal.classList.add('hidden');
+
+    // Ferme la modal si on clique à l'extérieur
+    window.onclick = (e) => {
+      if (e.target === loginModal) loginModal.classList.add('hidden');
+      if (e.target === registerModal) registerModal.classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
