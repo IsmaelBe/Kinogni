@@ -12,9 +12,18 @@ from sqlmodel import SQLModel, Field, create_engine, select
 from dotenv import dotenv_values
 from app.models import Film, Review
 from app.database import get_db
+from fastapi.middleware.cors import CORSMiddleware
 
 templates = Jinja2Templates(directory="templates")
 app = FastAPI()
+# Configuration CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Autorise toutes les origines (utile en développement)
+    allow_credentials=True,
+    allow_methods=["*"], # Autorise GET, POST, etc.
+    allow_headers=["*"], # Autorise tous les headers
+)
 
 config = dotenv_values(".env")
 database_url = f"postgresql://{config['USER']}:{config['MDP_BDD']}@localhost/projet"
@@ -36,10 +45,15 @@ model = AutoModelForSequenceClassification.from_pretrained('nlptown/bert-base-mu
         device=-1
     )"""
 
-# Renvoie la page d'accueil HTML
-@app.get("/",response_class=HTMLResponse)
+# Route pour la page d'accueil (Présentation)
+@app.get("/", response_class=HTMLResponse)
 def accueil(request: Request):
     return templates.TemplateResponse("site.html", {"request": request})
+
+# Route pour le Dashboard (Recherche et Analyse)
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request):
+    return templates.TemplateResponse("dashboard.html", {"request": request})
 
 
 #Recherche film par nom, pour garder les espaces, on le met sous forme de query
@@ -192,9 +206,11 @@ def sentiment_analysis(reviews):
 
             tokens = tokenizer.encode(content[:512], return_tensors='pt')
             outputs = model(tokens)
+            print(outputs)
             logits = outputs.logits
-            sentiment = int(torch.argmax(logits)) + 1
+            sentiment = int(torch.argmax(logits)) - 2
             val_precise = float(torch.max(logits))
+            print(sentiment,val_precise)
             # Retourne un tenseur avec une liste de 5 valeurs (très négatif à très positif),
             # Le nombre le plus grand (entre 1 et 5) est le sentiment le plus probable
             for index, val in enumerate(ratings):
@@ -208,3 +224,10 @@ def sentiment_analysis(reviews):
 #Voir dictionnaire pythorch
 #AVancer compte rendu
 #jeudi 11h le 20 partie sentiments + rendre à l'utilisateur
+
+
+# Fonctionnement précis BERT a partir du vecteur
+# transfert learning (utilisation ia déja entrainé)
+# Centrer en 0 les valeurs
+# Negation dans l'analyse / Sentiment a la fin qui prime
+# 

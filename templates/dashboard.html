@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MovieRatings - Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+  <nav class="flex justify-between items-center bg-gray-200 px-6 py-4 shadow">
+    <div class="text-2xl font-bold text-blue-700">MovieRatings</div>
+    <ul class="flex space-x-6 italic">
+      <li><a href="/" class="text-gray-700 hover:text-blue-600 font-medium">← Retour Accueil</a></li>
+    </ul>
+  </nav>
+
+  <section class="text-center py-12 bg-white shadow-inner">
+    <h1 class="text-3xl font-bold text-blue-600">Dashboard d'Analyse</h1>
+    <p class="mt-2 text-gray-600">Recherchez un film pour lancer l'analyse BERT.</p>
+    
+    <div class="mt-8 max-w-xl mx-auto px-4 flex gap-2">
+      <input type="text" id="movieInput" placeholder="Nom du film..." class="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 outline-none">
+      <button id="searchBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">Chercher</button>
+    </div>
+  </section>
+
+  <div class="max-w-4xl mx-auto my-10 px-4">
+    <div id="resultsContainer" class="grid gap-4">
+      <p class="text-center text-gray-400 italic">En attente d'une recherche...</p>
+    </div>
+  </div>
+
+  <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p class="font-bold">Analyse BERT en cours...</p>
+    </div>
+  </div>
+
+  <script>
+    const movieInput = document.getElementById('movieInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const loader = document.getElementById('loader');
+
+    async function searchMovies() {
+      const query = movieInput.value.trim();
+      if (!query) return;
+      resultsContainer.innerHTML = '<p class="text-center">Recherche...</p>';
+      try {
+        const response = await fetch(`/films/liste?nom=${encodeURIComponent(query)}`);
+        const result = await response.json();
+        displayResults(result.data);
+      } catch (error) {
+        resultsContainer.innerHTML = `<p class="text-center text-red-500">Erreur lors de la recherche.</p>`;
+      }
+    }
+
+    function displayResults(movies) {
+      resultsContainer.innerHTML = "";
+      if (!movies || movies.length === 0) {
+        resultsContainer.innerHTML = '<p class="text-center">Aucun film trouvé.</p>';
+        return;
+      }
+      movies.forEach(movie => {
+        const id = movie.film_id || movie.id;
+        const card = document.createElement('div');
+        card.className = "flex items-center justify-between bg-white p-4 rounded-lg shadow border-l-4 border-blue-600";
+        card.innerHTML = `
+          <div>
+            <h3 class="font-bold text-lg">${movie.titre}</h3>
+            <p class="text-sm text-gray-500">${movie.date_sortie || 'Date inconnue'}</p>
+          </div>
+          <button onclick="analyzeFilm('${id}')" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Analyser</button>
+        `;
+        resultsContainer.appendChild(card);
+      });
+    }
+
+    async function analyzeFilm(filmId) {
+      loader.classList.remove('hidden');
+      try {
+        const response = await fetch(`/films/reviews/${filmId}`);
+        const data = await response.json();
+        alert(`Succès ! ${data.Sentiments.length} avis analysés par BERT.`);
+      } catch (error) {
+        alert("Erreur lors de l'analyse.");
+      } finally {
+        loader.classList.add('hidden');
+      }
+    }
+
+    searchBtn.onclick = searchMovies;
+    movieInput.onkeypress = (e) => { if (e.key === 'Enter') searchMovies(); };
+  </script>
+</body>
+</html>
