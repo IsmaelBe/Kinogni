@@ -4,15 +4,17 @@ from typing import Optional # Typage
 from time import sleep # 2 secondes de délai entre les tentatives de connexion de la base de données
 import requests # Requête HTTP à l'API TMDB
 import torch
+import uuid
 from transformers import AutoTokenizer, AutoModelForSequenceClassification # Analyse de sentiments
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse # Renvoyer des fichiers HTML
 from sqlalchemy.orm import Session
 from sqlmodel import SQLModel, Field, create_engine, select
 from dotenv import dotenv_values
-from app.models import Film, Review
+from app.models import Film, Review, Users
 from app.database import get_db
 from fastapi.middleware.cors import CORSMiddleware
+from passlib.context import CryptContext
 
 templates = Jinja2Templates(directory="templates")
 app = FastAPI()
@@ -28,9 +30,19 @@ app.add_middleware(
 config = dotenv_values(".env")
 database_url = f"postgresql://{config['USER']}:{config['MDP_BDD']}@localhost/projet"
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 class ReviewMAJ(BaseModel):
     contenu: str
 
+class UserCreate(BaseModel):
+    mail: str
+    username: str
+    password: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
 
 tokenizer = AutoTokenizer.from_pretrained('nlptown/bert-base-multilingual-uncased-sentiment')
 model = AutoModelForSequenceClassification.from_pretrained('nlptown/bert-base-multilingual-uncased-sentiment')
@@ -44,6 +56,12 @@ model = AutoModelForSequenceClassification.from_pretrained('nlptown/bert-base-mu
         # Lancer sur CPU
         device=-1
     )"""
+
+def hash_password(password: str):
+    return pwd_context.hash(password)
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
 # Route pour la page d'accueil (Présentation)
 @app.get("/", response_class=HTMLResponse)
@@ -108,6 +126,61 @@ def delete_review(id: str, db: Session = Depends(get_db)):
     db.commit()
     return {
         "message": "Review mise à jour avec succès (message supprimé)",
+    }
+
+
+@app.post("/user/register", status_code=status.HTTP_201_CREATED)
+def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
+    # 1. Vérifier si l'utilisateur existe déjà (par mail ou pseudo)
+    existing_user = db.query(Users).filter(
+        (Users.mail == user_data.mail) | (Users.username == user_data.username)
+    ).first()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cet email ou ce nom d'utilisateur est déjà utilisé."
+        )
+
+    # 2. Créer l'instance du modèle SQLAlchemy
+    # Note: En production, il faut hacher le mot de passe (ex: avec passlib)
+    new_user = Users(
+        users_id=str(uuid.uuid4()), # Génère un ID unique
+        mail=user_data.mail,
+        username=user_data.username,
+        password=hash_password(user_data.password)
+    )
+
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return {"message": "Utilisateur créé avec succès", "user_id": new_user.users_id}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la création : {e}")
+
+
+@app.post("/user/login")
+def login(user_infos: UserLogin, db: Session = Depends(get_db)):
+    # Chercher l'utilisateur
+    user = db.query(Users).filter(Users.username == user_infos.username).first()
+
+    # Erreur si on le trouve pas
+    if not user or not verify_password(user_infos.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Nom d'utilisateur ou mot de passe incorrect"
+        )
+
+    # On renvoie si c'est bon
+    return {
+        "message": "Connexion réussie",
+        "user": {
+            "id": user.users_id,
+            "username": user.username,
+            "mail": user.mail
+        }
     }
 
 
@@ -230,4 +303,4 @@ def sentiment_analysis(reviews):
 # transfert learning (utilisation ia déja entrainé)
 # Centrer en 0 les valeurs
 # Negation dans l'analyse / Sentiment a la fin qui prime
-# 
+#

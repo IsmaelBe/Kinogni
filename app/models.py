@@ -21,3 +21,12 @@ class Review(Base):
     edited = Column(Integer, default=0)
 
     film = relationship("Film", back_populates="reviews")
+
+
+class Users(Base):
+    __tablename__ = "users"
+
+    users_id = Column(String, primary_key=True, index=True)
+    mail = Column(String, nullable=False)
+    username = Column(String, nullable=False)
+    password = Column(String, nullable=False)
