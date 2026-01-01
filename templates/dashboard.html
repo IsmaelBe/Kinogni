@@ -10,89 +10,100 @@
 
   <nav class="flex justify-between items-center bg-gray-200 px-6 py-4 shadow">
     <div class="text-2xl font-bold text-blue-700">MovieRatings</div>
-    <ul class="flex space-x-6 italic">
-      <li><a href="/" class="text-gray-700 hover:text-blue-600 font-medium">← Retour Accueil</a></li>
-    </ul>
+    <div class="flex items-center gap-4 text-sm italic">
+      <span id="userInfo"></span>
+      <a href="/" onclick="localStorage.clear()" class="text-red-500 font-bold">Déconnexion</a>
+    </div>
   </nav>
 
   <section class="text-center py-12 bg-white shadow-inner">
     <h1 class="text-3xl font-bold text-blue-600">Dashboard d'Analyse</h1>
-    <p class="mt-2 text-gray-600">Recherchez un film pour lancer l'analyse BERT.</p>
-    
     <div class="mt-8 max-w-xl mx-auto px-4 flex gap-2">
-      <input type="text" id="movieInput" placeholder="Nom du film..." class="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 outline-none">
-      <button id="searchBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">Chercher</button>
+      <input type="text" id="movieInput" placeholder="Rechercher un film..." class="w-full p-3 border rounded-lg outline-none">
+      <button onclick="chercherFilms()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">Chercher</button>
     </div>
   </section>
 
   <div class="max-w-4xl mx-auto my-10 px-4">
-    <div id="resultsContainer" class="grid gap-4">
-      <p class="text-center text-gray-400 italic">En attente d'une recherche...</p>
+    <div id="resultsContainer" class="grid gap-4 text-center text-gray-400 italic">
+      <p>Entrez un titre pour commencer.</p>
     </div>
   </div>
 
-  <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
-      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p class="font-bold">Analyse BERT en cours...</p>
+  <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-xl text-center shadow-xl">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p class="font-bold">Analyse en cours...</p>
     </div>
   </div>
 
   <script>
-    const movieInput = document.getElementById('movieInput');
-    const searchBtn = document.getElementById('searchBtn');
-    const resultsContainer = document.getElementById('resultsContainer');
-    const loader = document.getElementById('loader');
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) window.location.href = '/';
+    else document.getElementById('userInfo').innerText = "Session : " + user.username;
 
-    async function searchMovies() {
+    const movieInput = document.getElementById('movieInput');
+    const resultsContainer = document.getElementById('resultsContainer');
+
+    async function chercherFilms() {
       const query = movieInput.value.trim();
       if (!query) return;
-      resultsContainer.innerHTML = '<p class="text-center">Recherche...</p>';
+      resultsContainer.innerHTML = 'Recherche...';
       try {
         const response = await fetch(`/films/liste?nom=${encodeURIComponent(query)}`);
         const result = await response.json();
-        displayResults(result.data);
-      } catch (error) {
-        resultsContainer.innerHTML = `<p class="text-center text-red-500">Erreur lors de la recherche.</p>`;
-      }
+        afficherResultats(result.data);
+      } catch (e) { resultsContainer.innerHTML = "Erreur."; }
     }
 
-    function displayResults(movies) {
+    function afficherResultats(movies) {
       resultsContainer.innerHTML = "";
-      if (!movies || movies.length === 0) {
-        resultsContainer.innerHTML = '<p class="text-center">Aucun film trouvé.</p>';
-        return;
-      }
       movies.forEach(movie => {
         const id = movie.film_id || movie.id;
-        const card = document.createElement('div');
-        card.className = "flex items-center justify-between bg-white p-4 rounded-lg shadow border-l-4 border-blue-600";
-        card.innerHTML = `
-          <div>
-            <h3 class="font-bold text-lg">${movie.titre}</h3>
-            <p class="text-sm text-gray-500">${movie.date_sortie || 'Date inconnue'}</p>
-          </div>
-          <button onclick="analyzeFilm('${id}')" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Analyser</button>
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center bg-white p-4 rounded shadow border-l-4 border-blue-500";
+        div.innerHTML = `
+          <div class="text-left"><h3 class="font-bold">${movie.titre}</h3><p class="text-xs italic text-gray-500">${movie.date_sortie}</p></div>
+          <button onclick="analyseFilm('${id}')" class="bg-green-600 text-white px-4 py-2 rounded-full font-bold">Analyser</button>
         `;
-        resultsContainer.appendChild(card);
+        resultsContainer.appendChild(div);
       });
     }
 
-    async function analyzeFilm(filmId) {
-      loader.classList.remove('hidden');
+    async function analyseFilm(filmId) {
+      document.getElementById('loader').classList.remove('hidden');
       try {
         const response = await fetch(`/films/reviews/${filmId}`);
-        const data = await response.json();
-        alert(`Succès ! ${data.Sentiments.length} avis analysés par BERT.`);
-      } catch (error) {
-        alert("Erreur lors de l'analyse.");
-      } finally {
-        loader.classList.add('hidden');
-      }
-    }
+        const json = await response.json();
+        const reviews = json.data || [];
+        const sentiments = json.Sentiments || [];
 
-    searchBtn.onclick = searchMovies;
-    movieInput.onkeypress = (e) => { if (e.key === 'Enter') searchMovies(); };
+        let html = `<button onclick="location.reload()" class="mb-4 text-blue-600 underline font-bold">← Retour</button>`;
+        reviews.forEach((rev, index) => {
+          const s = sentiments[index] || ["Inconnu", 0];
+          const label = s[0];
+          const score = parseFloat(s[1]).toFixed(2);
+
+          let borderCol = "border-gray-300";
+          if (label.includes("Positif")) borderCol = "border-green-500";
+          else if (label.includes("Mauvais")) borderCol = "border-red-500";
+          else if (label.includes("Mitigé")) borderCol = "border-orange-400";
+
+          html += `
+            <div class="bg-white p-5 rounded shadow border-l-8 ${borderCol} mb-4 text-left">
+              <div class="flex justify-between items-start mb-2 font-bold text-sm">
+                <span class="text-blue-700 uppercase">${rev.auteur || "Anonyme"}</span>
+                <span class="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase">${label} (${score})</span>
+              </div>
+              <p class="text-gray-700 italic text-sm whitespace-pre-line">${rev.contenu}</p>
+              ${rev.edited ? '<span class="text-[10px] text-blue-400 font-bold block mt-2">● MODIFIÉ</span>' : ''}
+            </div>
+          `;
+        });
+        resultsContainer.innerHTML = html;
+        window.scrollTo(0, 0);
+      } catch (e) { alert("Erreur."); } finally { document.getElementById('loader').classList.add('hidden'); }
+    }
   </script>
 </body>
 </html>

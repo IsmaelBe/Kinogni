@@ -131,7 +131,7 @@ def delete_review(id: str, db: Session = Depends(get_db)):
 
 @app.post("/user/register", status_code=status.HTTP_201_CREATED)
 def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
-    # 1. Vérifier si l'utilisateur existe déjà (par mail ou pseudo)
+    # Vérifier si l'utilisateur existe déjà (par mail ou pseudo)
     existing_user = db.query(Users).filter(
         (Users.mail == user_data.mail) | (Users.username == user_data.username)
     ).first()
@@ -142,8 +142,7 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Cet email ou ce nom d'utilisateur est déjà utilisé."
         )
 
-    # 2. Créer l'instance du modèle SQLAlchemy
-    # Note: En production, il faut hacher le mot de passe (ex: avec passlib)
+    # Créer instance modèle SQLAlchemy
     new_user = Users(
         users_id=str(uuid.uuid4()), # Génère un ID unique
         mail=user_data.mail,
@@ -194,49 +193,35 @@ def get_reviews(film_id: int, db: Session = Depends(get_db)):
         if not film:
             raise HTTPException(status_code=404, detail="Film introuvable")
 
-        # Vérifie si le film a au moins 1 review
-        has_reviews = film.reviews and any(r.auteur for r in film.reviews)
+        # Récupération avis locaux (base de données)
+        reviews_locales = film.reviews or []
 
-        if has_reviews:
-            # Analyse de sentiments avec l'auteur et le contenu
-            reviews_locales = [{"author": r.auteur, "content": r.contenu} for r in film.reviews if r.auteur]
-            sentiments = sentiment_analysis(reviews_locales)
-            return {"data": film.reviews, "Sentiments": sentiments}
-
-        # On regarde sur l'API TMDB les reviews avec une requête GET
+        # Récupération avis TMDB
         API_KEY = config["API_KEY"]
         url = f"https://api.themoviedb.org/3/movie/{film_id}/reviews"
         params = {"api_key": API_KEY}
         response = requests.get(url, params=params)
+        reviews_tmdb = response.json().get("results", []) if response.status_code == 200 else []
+        tous_les_avis = []
+        for r in reviews_locales:
+            tous_les_avis.append({"auteur": r.auteur, "contenu": r.contenu, "edited": r.edited})
+        
+        for r in reviews_tmdb:
+            if not any(loc["contenu"] == r["content"] for loc in tous_les_avis):
+                tous_les_avis.append({"auteur": r["author"], "contenu": r["content"], "edited": 0})
 
-        # Si la requête ne marche pas
-        if response.status_code != 200:
-            raise HTTPException(status_code=404, detail="Film introuvable sur TMDB")
+        # Analyse sur la liste
+        sentiments = sentiment_analysis(tous_les_avis)
 
-        # La liste des reviews
-        reviews = response.json()["results"]
-
-        for review in reviews:
-            # On insère pour chaque review dans la table review SI l'id est unique
-            new_review = Review(
-                review_id=review["id"],
-                film_id=film_id,
-                auteur=review["author"],
-                contenu=review["content"]
-            )
-            db.merge(new_review)
-        db.commit()
-        # Analyse de sentiment
-        sentiments = sentiment_analysis(reviews)
-        return {"Avis": reviews, "Sentiments": sentiments}
-    # Problème connexion base de donnée ou autre
+        return {
+            "data": tous_les_avis,
+            "Sentiments": sentiments
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur interne : {e}")
 
 
-
-
-# Fonction pour interroger l'API TMDB
+# Interroger l'API TMDB
 def verification_tmdb(nom: str, db: Session):
 
     #Requête GET sur l'API TMDB
@@ -245,7 +230,6 @@ def verification_tmdb(nom: str, db: Session):
     params = {"api_key": API_KEY, "query": nom}
     response = requests.get(endpoint, params=params)
 
-    # Problème de requête
     if response.status_code != 200:
         return []
 
@@ -267,33 +251,39 @@ def verification_tmdb(nom: str, db: Session):
     db.commit()
     return films
 
-# Fonction analyse de sentiments
-ratings = [[1, "Très mauvais"],[2, "Mauvais"],[3, "Mitigé"],[4, "Positif"],[5, "Très positif"]]
-
 def sentiment_analysis(reviews):
-    try:
-        sentiments = []
-        # Pour chaque review (500 charactères max), on analyse la positivité/négativité (de 0 à 1)
-        for review in reviews:
-            content = review.get("content", "")
+    sentiments = []
+    # 0=Très mauvais, 1=Mauvais, 2=Mitigé, 3=Positif, 4=Très positif
+    labels = ["Très mauvais", "Mauvais", "Mitigé", "Positif", "Très positif"]    
+    for i, review in enumerate(reviews):
+        content = review.get("contenu") or review.get("content") or ""
+        
+        if not content:
+            print(f"Avis {i}: Contenu vide, on saute.")
+            sentiments.append(["Inconnu", 0.0])
+            continue
 
+        try:
             tokens = tokenizer.encode(content[:512], return_tensors='pt')
-            outputs = model(tokens)
-            print(outputs)
+            with torch.no_grad():
+                outputs = model(tokens)
+            
             logits = outputs.logits
-            sentiment = int(torch.argmax(logits)) - 2
-            val_precise = float(torch.max(logits))
-            print(sentiment,val_precise)
-            # Retourne un tenseur avec une liste de 5 valeurs (très négatif à très positif),
-            # Le nombre le plus grand (entre 1 et 5) est le sentiment le plus probable
-            for index, val in enumerate(ratings):
-                if sentiment == index+1:
-                    sentiments.append([val[1], val_precise])
-        return sentiments
-    except Exception as error:
-        raise error
-
-
+            # L'index brut de BERT (0 à 4)
+            prediction = torch.argmax(logits, dim=1).item()
+            
+            # Calcul de probabilité (0.0 à 1.0)
+            prob = torch.softmax(logits, dim=1)[0][prediction].item()
+            
+            # Résultat final
+            label_final = labels[prediction]
+            sentiments.append([label_final, prob])
+            
+        except Exception as e:
+            print(f"Avis {i} | ERREUR : {e}")
+            sentiments.append(["Erreur", 0.0])
+            
+    return sentiments
 #Voir dictionnaire pythorch
 #AVancer compte rendu
 #jeudi 11h le 20 partie sentiments + rendre à l'utilisateur
@@ -303,4 +293,3 @@ def sentiment_analysis(reviews):
 # transfert learning (utilisation ia déja entrainé)
 # Centrer en 0 les valeurs
 # Negation dans l'analyse / Sentiment a la fin qui prime
-#
