@@ -254,7 +254,6 @@ def verification_tmdb(nom: str, db: Session):
 def sentiment_analysis(reviews):
     sentiments = []
     # 0=Très mauvais, 1=Mauvais, 2=Mitigé, 3=Positif, 4=Très positif
-    labels = ["Très mauvais", "Mauvais", "Mitigé", "Positif", "Très positif"]    
     for i, review in enumerate(reviews):
         content = review.get("contenu") or review.get("content") or ""
         
@@ -269,6 +268,7 @@ def sentiment_analysis(reviews):
                 outputs = model(tokens)
             
             logits = outputs.logits
+            print(logits)
             # L'index brut de BERT (0 à 4)
             prediction = torch.argmax(logits, dim=1).item()
             
@@ -276,7 +276,16 @@ def sentiment_analysis(reviews):
             prob = torch.softmax(logits, dim=1)[0][prediction].item()
             
             # Résultat final
-            label_final = labels[prediction]
+            if prediction < 0.2:
+                label_final = "Très mauvais"
+            elif prediction >= 0.2 and prediction < 0.4:
+                label_final = "Mauvais"
+            elif prediction >= 0.4 and prediction < 0.6:
+                label_final = "Mitigé"
+            elif prediction >= 0.6 and prediction < 0.8:
+                label_final = "Positif"
+            else:
+                label_final = "Très positif"
             sentiments.append([label_final, prob])
             
         except Exception as e:
