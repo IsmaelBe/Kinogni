@@ -276,13 +276,14 @@ def sentiment_analysis(reviews):
             prob = torch.softmax(logits, dim=1)[0][prediction].item()
             
             # Résultat final
-            if prediction < 0.2:
+            print(prob)
+            if prob < 0.2:
                 label_final = "Très mauvais"
-            elif prediction >= 0.2 and prediction < 0.4:
+            elif prob >= 0.2 and prob < 0.4:
                 label_final = "Mauvais"
-            elif prediction >= 0.4 and prediction < 0.6:
+            elif prob >= 0.4 and prob < 0.6:
                 label_final = "Mitigé"
-            elif prediction >= 0.6 and prediction < 0.8:
+            elif prob >= 0.6 and prob < 0.8:
                 label_final = "Positif"
             else:
                 label_final = "Très positif"
