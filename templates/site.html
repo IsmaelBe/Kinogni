@@ -10,7 +10,7 @@
   <nav class="flex justify-between items-center bg-gray-200 px-6 py-4 shadow">
     <div class="text-2xl font-bold text-blue-700">MovieRatings</div>
     <ul class="flex space-x-6 items-center">
-      <li><button onclick="checkAccess()" class="bg-blue-600 text-white px-4 py-2 rounded">Dashboard</button></li>
+      <li><button onclick="checkAccess()" class="bg-blue-600 text-white px-4 py-2 rounded transition hover:scale-105 duration-300">Dashboard</button></li>
       <li><button onclick="document.getElementById('loginModal').classList.remove('hidden')">Connexion</button></li>
       <li><button onclick="document.getElementById('registerModal').classList.remove('hidden')" class="font-bold">Inscription</button></li>
     </ul>
@@ -19,9 +19,47 @@
   <section class="text-center py-20 bg-white shadow-inner">
     <h1 class="text-4xl font-bold text-blue-600">MovieRatings</h1>
     <p class="mt-4 text-gray-600">Analyse BERT des avis de films.</p>
-    <button onclick="checkAccess()" class="mt-10 bg-blue-600 text-white px-8 py-4 rounded-full font-bold">Lancer l'analyse</button>
+    <button onclick="checkAccess()" class="mt-10 bg-blue-600 text-white px-8 py-4 mx-8 rounded-full font-bold transition hover:scale-110 duration-300">Lancer l'analyse</button>
   </section>
 
+  <section class="flex items-center justify-center py-20 gap-x-12 px-6">
+    
+    <div class="bg-white p-10 w-[450px] rounded-[2rem] shadow-xl border border-blue-50 transition hover:scale-105 duration-300">
+      <div class="flex items-center mb-6">
+        <div class="bg-blue-100 p-3 rounded-full mr-4">
+          <span class="text-3xl">🧠</span>
+        </div>
+        <h3 class="font-extrabold text-2xl text-gray-800">Modèle BERT</h3>
+      </div>
+      <p class="text-gray-600 leading-relaxed text-left">
+        Contrairement aux algorithmes classiques qui comptent simplement les mots positifs ou négatifs, on utilise un modèle <strong>BERT (Bidirectional Encoder Representations from Transformers)</strong> qui analyse le contexte global de chaque phrase. 
+      </p>
+      <ul class="mt-4 space-y-2 text-sm text-gray-500 text-left">
+        <li class="flex items-center">- Détection des nuances et de l'ironie.</li>
+        <li class="flex items-center">- Compréhension des doubles sens.</li>
+        <li class="flex items-center">- Score de confiance sur 5 niveaux de polarité.</li>
+      </ul>
+    </div>
+
+    <div class="bg-white p-10 w-[450px] rounded-[2rem] shadow-xl border border-blue-50 transition hover:scale-105 duration-300">
+      <div class="flex items-center mb-6">
+        <div class="bg-blue-100 p-3 rounded-full mr-4">
+          <span class="text-3xl">📡</span>
+        </div>
+        <h3 class="font-extrabold text-2xl text-gray-800">API TMDB</h3>
+      </div>
+      <p class="text-gray-600 leading-relaxed text-left">
+        Nous obtenons les avis de films grâce à l'API <strong>The Movie Database (TMDB)</strong> pour extraire des flux de critiques en temps réel dans une variété de langues. Cette synergie permet de coupler l'analyse de sentiment avec des métadonnées riches.
+      </p>
+      <ul class="mt-4 space-y-2 text-sm text-gray-500 text-left">
+        <li class="flex items-center">- Comparaison avec les notes spectateurs.</li>
+        <li class="flex items-center">- Evolution de l'opinion post-sortie.</li>
+        <li class="flex items-center">-  Filtrage par langue et par région.</li>
+      </ul>
+    </div>
+
+  </section>
+    
   <div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-lg w-80 shadow-lg text-center">
       <h2 class="text-2xl font-bold mb-4">Connexion</h2>
@@ -42,13 +80,22 @@
       <button onclick="document.getElementById('registerModal').classList.add('hidden')" class="mt-3 text-gray-500">Fermer</button>
     </div>
   </div>
-
+  <footer class="mt-20 py-8 border-t border-gray-200 text-center">
+    <div class="max-w-4xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
+      <p>&copy; 2026 MovieRatings. Propulsé par le modèle d'IA BERT et l'API TMDB.</p>
+      <div class="flex space-x-6 mt-4 md:mt-0">
+        <a href="#" class="hover:text-blue-600 transition">Confidentialité</a>
+        <a href="#" class="hover:text-blue-600 transition">Documentation API</a>
+        <a href="#" class="hover:text-blue-600 transition">Contact</a>
+      </div>
+    </div>
+  </footer>
   <script>
     function checkAccess() {
       localStorage.getItem('user') ? window.location.href='/dashboard' : document.getElementById('loginModal').classList.remove('hidden');
     }
 
-    async function connexion() {
+    async function connexion() {  
       const username = document.getElementById('lUser').value;
       const password = document.getElementById('lPass').value;
       const response = await fetch('/user/login', {
