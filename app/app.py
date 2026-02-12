@@ -254,6 +254,15 @@ def verification_tmdb(nom: str, db: Session):
 def sentiment_analysis(reviews):
     sentiments = []
     # 0=Très mauvais, 1=Mauvais, 2=Mitigé, 3=Positif, 4=Très positif
+    # Mapping pour transformer l'index de BERT en label textuel
+    labels_map = {
+        0: "Très mauvais",
+        1: "Mauvais",
+        2: "Mitigé",
+        3: "Positif",
+        4: "Très positif"
+    }
+
     for i, review in enumerate(reviews):
         content = review.get("contenu") or review.get("content") or ""
         
@@ -269,24 +278,18 @@ def sentiment_analysis(reviews):
             
             logits = outputs.logits
             print(logits)
-            # L'index brut de BERT (0 à 4)
+            # L'index BERT (0 à 4)
             prediction = torch.argmax(logits, dim=1).item()
             
-            # Calcul de probabilité (0.0 à 1.0)
+            # Calcul probabilité (0.0 à 1.0)
             prob = torch.softmax(logits, dim=1)[0][prediction].item()
             
             # Résultat final
             print(prob)
-            if prob < 0.2:
-                label_final = "Très mauvais"
-            elif prob >= 0.2 and prob < 0.4:
-                label_final = "Mauvais"
-            elif prob >= 0.4 and prob < 0.6:
-                label_final = "Mitigé"
-            elif prob >= 0.6 and prob < 0.8:
-                label_final = "Positif"
-            else:
-                label_final = "Très positif"
+            
+            # On récupère le label 
+            label_final = labels_map[prediction]
+            
             sentiments.append([label_final, prob])
             
         except Exception as e:
@@ -294,6 +297,7 @@ def sentiment_analysis(reviews):
             sentiments.append(["Erreur", 0.0])
             
     return sentiments
+
 #Voir dictionnaire pythorch
 #AVancer compte rendu
 #jeudi 11h le 20 partie sentiments + rendre à l'utilisateur
