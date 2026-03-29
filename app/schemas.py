@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 # Ensemble de classe pour les requêtes POST/PUT
 class ReviewMAJ(BaseModel):

@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MovieRatings - Dashboard</title>
+  <title>Kinogni - Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
   <nav class="flex justify-between items-center bg-gray-200 px-6 py-4 shadow">
-    <div class="text-2xl font-bold text-blue-700">MovieRatings</div>
+    <div class="text-2xl font-bold text-blue-700">Kinogni</div>
     <div class="flex items-center gap-4 text-sm italic">
       <span id="userInfo"></span>
       <a href="/" onclick="localStorage.clear()" class="text-red-500 font-bold">Déconnexion</a>
@@ -42,18 +42,16 @@
     if (!user) window.location.href = '/';
     else document.getElementById('userInfo').innerText = "Session : " + user.username;
 
-    const movieInput = document.getElementById('movieInput');
+    let currentFilmId = null;
     const resultsContainer = document.getElementById('resultsContainer');
 
     async function chercherFilms() {
-      const query = movieInput.value.trim();
+      const query = document.getElementById('movieInput').value.trim();
       if (!query) return;
       resultsContainer.innerHTML = 'Recherche...';
-      try {
-        const response = await fetch(`/films/liste?nom=${encodeURIComponent(query)}`);
-        const result = await response.json();
-        afficherResultats(result.data);
-      } catch (e) { resultsContainer.innerHTML = "Erreur."; }
+      const response = await fetch(`/films/liste?nom=${encodeURIComponent(query)}`);
+      const result = await response.json();
+      afficherResultats(result.data);
     }
 
     function afficherResultats(movies) {
@@ -71,6 +69,7 @@
     }
 
     async function analyseFilm(filmId) {
+      currentFilmId = filmId;
       document.getElementById('loader').classList.remove('hidden');
       try {
         const response = await fetch(`/films/reviews/${filmId}`);
@@ -78,24 +77,31 @@
         const reviews = json.data || [];
         const sentiments = json.Sentiments || [];
 
-        let html = `<button onclick="location.reload()" class="mb-4 text-blue-600 underline font-bold">← Retour</button>`;
+        let html = `
+          <div class="flex justify-between items-center mb-6">
+            <button onclick="location.reload()" class="text-blue-600 underline font-bold">← Retour</button>
+            <button onclick="ouvrirZoneAjout()" class="bg-blue-600 text-white px-4 py-2 rounded shadow font-bold">+ Ajouter mon avis</button>
+          </div>
+          <div id="zoneSaisie"></div>
+        `;
+
         reviews.forEach((rev, index) => {
           const s = sentiments[index] || ["Inconnu", 0];
-          const label = s[0];
-          const score = parseFloat(s[1]).toFixed(2);
-
-          let borderCol = "border-gray-300";
-          if (label.includes("Positif")) borderCol = "border-green-500";
-          else if (label.includes("Mauvais")) borderCol = "border-red-500";
-          else if (label.includes("Mitigé")) borderCol = "border-orange-400";
-
+          const isOwner = (rev.auteur === user.username);
+          
           html += `
-            <div class="bg-white p-5 rounded shadow border-l-8 ${borderCol} mb-4 text-left">
+            <div class="bg-white p-5 rounded shadow border-l-8 mb-4 text-left relative">
               <div class="flex justify-between items-start mb-2 font-bold text-sm">
                 <span class="text-blue-700 uppercase">${rev.auteur || "Anonyme"}</span>
-                <span class="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase">${label} (${score})</span>
+                <div class="flex items-center gap-2">
+                  <span class="bg-gray-100 px-2 py-1 rounded text-[10px] uppercase">${s[0]}</span>
+                  ${isOwner ? `
+                    <button onclick="preparerModif('${rev.review_id}', \`${rev.contenu}\`)" class="text-orange-500 text-xs underline">Modifier</button>
+                    <button onclick="supprimerAvis('${rev.review_id}')" class="text-red-500 text-xs underline">Supprimer</button>
+                  ` : ''}
+                </div>
               </div>
-              <p class="text-gray-700 italic text-sm whitespace-pre-line">${rev.contenu}</p>
+              <p id="text-${rev.review_id}" class="text-gray-700 italic text-sm whitespace-pre-line">${rev.contenu}</p>
               ${rev.edited ? '<span class="text-[10px] text-blue-400 font-bold block mt-2">● MODIFIÉ</span>' : ''}
             </div>
           `;
@@ -103,6 +109,68 @@
         resultsContainer.innerHTML = html;
         window.scrollTo(0, 0);
       } catch (e) { alert("Erreur."); } finally { document.getElementById('loader').classList.add('hidden'); }
+    }
+
+    function ouvrirZoneAjout() {
+      document.getElementById('zoneSaisie').innerHTML = `
+        <div class="bg-blue-50 p-4 rounded mb-6 border border-blue-200">
+          <textarea id="nouveauContenu" class="w-full p-2 border rounded" placeholder="Écrire votre avis..."></textarea>
+          <button onclick="publierAvis()" class="mt-2 bg-blue-600 text-white px-4 py-1 rounded text-sm font-bold">Publier</button>
+        </div>
+      `;
+    }
+
+    async function publierAvis() {
+      const contenu = document.getElementById('nouveauContenu').value;
+      if (!contenu) return;
+      
+      const payload = { 
+            film_id: Number(currentFilmId), // S'assurer que c'est un nombre
+            user_id: user.id, 
+            username: user.username, 
+            contenu: contenu 
+      };
+
+      try {
+          const res = await fetch('/films/reviews/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+          });
+
+          if(res.ok) {
+              await analyseFilm(currentFilmId); 
+          } else {
+              const err = await res.json();
+              alert("Erreur: " + (err.detail || "Inconnue"));
+          }
+      } catch (error) {
+          console.error("Erreur réseau:", error);
+          alert("Impossible de joindre le serveur");
+      }
+    }
+
+    async function validerModif(id) {
+      const contenu = document.getElementById(`edit-${id}`).value;
+      const res = await fetch(`/films/reviews/update/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ contenu: contenu })
+      });
+      if(res.ok) await analyseFilm(currentFilmId);
+    }
+
+    async function supprimerAvis(id) {
+      if(!confirm("Supprimer ?")) return;
+      const res = await fetch(`/films/reviews/delete/${id}`, { method: 'DELETE' });
+      if(res.ok) await analyseFilm(currentFilmId);
+    }
+    
+    function preparerModif(id, texte) {
+      document.getElementById(`text-${id}`).innerHTML = `
+        <textarea id="edit-${id}" class="w-full p-2 border rounded text-sm">${texte}</textarea>
+        <button onclick="validerModif('${id}')" class="mt-2 bg-orange-500 text-white px-3 py-1 rounded text-xs font-bold">Enregistrer</button>
+      `;
     }
   </script>
 </body>

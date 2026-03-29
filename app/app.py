@@ -11,7 +11,7 @@ import requests
 from app.models import Film, Review, Users
 from app.database import get_db
 from app.schemas import ReviewMAJ, ReviewCreate, UserCreate, UserLogin
-from app.logic import sentiment_analysis, verification_tmdb, hash_password, verify_password
+from app.logic import sentiment_analysis, verification_tmdb, hash_password, verify_password, afficher_rapport_terminal
 
 templates = Jinja2Templates(directory="templates")
 app = FastAPI()
@@ -162,18 +162,19 @@ def get_reviews(film_id: int, db: Session = Depends(get_db)):
         tous_les_avis = []
         for r in reviews_locales:
             # On utilise 'auteur' pour comparer avec le username du localStorage
-            tous_les_avis.append({"review_id": r.review_id, "auteur": r.auteur, "contenu": r.contenu, "edited": r.edited})
+            tous_les_avis.append({"review_id": r.review_id, "auteur": r.auteur, "contenu": r.contenu, "edited": r.edited, "rating": r.rating})
         
         for r in reviews_tmdb:
             if not any(loc["contenu"] == r["content"] for loc in tous_les_avis):
                 tous_les_avis.append({"review_id": None, "auteur": r["author"], "contenu": r["content"], "edited": 0})
 
         # Analyse sur la liste
-        sentiments = sentiment_analysis(tous_les_avis)
-
+        sentiments, y_pred, y_true = sentiment_analysis(tous_les_avis)
+        afficher_rapport_terminal(y_true,y_pred)
         return {
             "data": tous_les_avis,
             "Sentiments": sentiments
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur interne : {e}")
+ 
