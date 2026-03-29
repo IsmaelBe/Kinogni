@@ -3,6 +3,7 @@ import requests
 from transformers import AutoTokenizer, AutoModelForSequenceClassification # Analyse de sentiments
 from passlib.context import CryptContext
 from app.models import Film
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 
 # Initialisation BERT
 tokenizer = AutoTokenizer.from_pretrained('nlptown/bert-base-multilingual-uncased-sentiment')
@@ -11,15 +12,6 @@ model = AutoModelForSequenceClassification.from_pretrained('nlptown/bert-base-mu
 # Initialisation Sécurité
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# On pouvait aussi faire avec Pipeline
-"""Reponse = pipeline(
-        # Tâche analyse de sentiments
-        task="sentiment-analysis",
-        # Nom du modèle (Plusieurs langues)
-        model="nlptown/bert-base-multilingual-uncased-sentiment",
-        # Lancer sur CPU
-        device=-1
-    )"""
 
 def hash_password(password: str):
     return pwd_context.hash(password)
@@ -30,6 +22,8 @@ def verify_password(plain_password, hashed_password):
 # Analyse de sentiments
 def sentiment_analysis(reviews):
     sentiments = []
+    y_pred = []
+    y_true = []
     # 0=Très mauvais, 1=Mauvais, 2=Mitigé, 3=Positif, 4=Très positif
     # Mapping pour transformer l'index de BERT en label textuel
     labels_map = {
@@ -69,11 +63,17 @@ def sentiment_analysis(reviews):
             
             sentiments.append([label_final, prob])
             
+            if review.get("rating") is not None:
+                y_pred.append(prediction)
+                y_true.append(review.get("rating"))
+                print("Valeur réelle: ", y_true[-1])
+                print(f"Valeur prédite: {y_pred[-1]}\n")
+
         except Exception as e:
             print(f"Avis {i} | ERREUR : {e}")
             sentiments.append(["Erreur", 0.0])
             
-    return sentiments
+    return sentiments, y_pred, y_true
 
 # Vérifie si le film pas trouvé est dans la base TMDB est l'ajoute à la base de données 
 def verification_tmdb(nom, db, API_KEY):
@@ -103,11 +103,28 @@ def verification_tmdb(nom, db, API_KEY):
     db.commit()
     return films
 
-#Voir dictionnaire pythorch
-#AVancer compte rendu
-#jeudi 11h le 20 partie sentiments + rendre à l'utilisateur
+def afficher_rapport_terminal(y_true, y_pred):
+    if not y_true or not y_pred or len(y_true) != len(y_pred):
+        return
 
-# Fonctionnement précis BERT a partir du vecteur
-# transfert learning (utilisation ia déja entrainé)
-# Centrer en 0 les valeurs
-# Negation dans l'analyse / Sentiment a la fin qui prime
+    print("Valeurs réelles: ", y_true, "\n Valeurs prédites: ", y_pred)
+    labels = ["Très mauvais", "Mauvais", "Mitigé", "Positif", "Très positif"]
+    
+    print("\n")
+    print("Analyse IA sur des valeurs préremplies")
+    print("\n")
+
+    # Score de précision globale
+    acc = accuracy_score(y_true, y_pred)
+    print(f"\nAccuracy: {acc:.2%}")
+
+    # Rapport (Précision, Recall, F1-score)
+    print("\n Report classification")
+    print(classification_report(y_true, y_pred, target_names=labels, labels=[0,1,2,3,4], zero_division=0))
+
+    # Matrice de Confusion
+    print("Matrice de confusion :")
+    cm = confusion_matrix(y_true, y_pred, labels=[0,1,2,3,4])
+    print(cm)
+    
+    print("\nLignes = vraies notes, les colonnes = prédictions")
