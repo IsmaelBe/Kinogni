@@ -4,12 +4,22 @@
   <meta charset="utf-8">
   <title>Kinogni - Accueil</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .slide-up   { animation: slideUp 0.6s ease-out forwards; }
+    .slide-up-2 { opacity: 0; animation: slideUp 0.6s ease-out 0.2s forwards; }
+    .slide-up-3 { opacity: 0; animation: slideUp 0.6s ease-out 0.4s forwards; }
+  </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
   <nav class="flex justify-between items-center bg-gray-200 px-6 py-4 shadow">
     <div class="text-2xl font-bold text-blue-700">Kinogni</div>
     <ul class="flex space-x-6 items-center">
+      <li><a href="/confidentialite" class="text-sm text-gray-500 hover:text-blue-600 transition">Confidentialité</a></li>
       <li><button onclick="checkAccess()" class="bg-blue-600 text-white px-4 py-2 rounded transition hover:scale-105 duration-300">Dashboard</button></li>
       <li><button onclick="document.getElementById('loginModal').classList.remove('hidden')">Connexion</button></li>
       <li><button onclick="document.getElementById('registerModal').classList.remove('hidden')" class="font-bold">Inscription</button></li>
@@ -17,9 +27,9 @@
   </nav>
 
   <section class="text-center py-20 bg-white shadow-inner">
-    <h1 class="text-4xl font-bold text-blue-600">Kinogni</h1>
-    <p class="mt-4 text-gray-600">Analyse BERT des avis de films.</p>
-    <button onclick="checkAccess()" class="mt-10 bg-blue-600 text-white px-8 py-4 mx-8 rounded-full font-bold transition hover:scale-110 duration-300">Lancer l'analyse</button>
+    <h1 class="text-4xl font-bold text-blue-600 slide-up">Kinogni</h1>
+    <p class="mt-4 text-gray-600 slide-up-2">Analyse BERT des avis de films.</p>
+    <button onclick="checkAccess()" class="mt-10 bg-blue-600 text-white px-8 py-4 mx-8 rounded-full font-bold transition hover:scale-110 duration-300 slide-up-3">Lancer l'analyse</button>
   </section>
 
   <section class="flex items-center justify-center py-20 gap-x-12 px-6">
@@ -27,29 +37,31 @@
     <div class="bg-white p-10 w-[450px] rounded-[2rem] shadow-xl border border-blue-50 transition hover:scale-105 duration-300">
       <div class="flex items-center mb-6">
         <div class="bg-blue-100 p-3 rounded-full mr-4">
-          <span class="text-3xl">🧠</span>
+          <span class="text-3xl">1</span>
         </div>
         <h3 class="font-extrabold text-2xl text-gray-800">Modèle BERT</h3>
       </div>
       <p class="text-gray-600 leading-relaxed text-left">
-        Contrairement aux algorithmes classiques qui comptent simplement les mots positifs ou négatifs, on utilise un modèle <strong>BERT (Bidirectional Encoder Representations from Transformers)</strong> qui analyse le contexte global de chaque phrase. 
+        Contrairement aux algorithmes classiques qui comptent les mots positifs ou négatifs, on utilise un modèle <strong>BERT</strong> (Bidirectional Encoder Representations from Transformers) qui permet d'analyser le contexte global de chaque phrase.
+        Cela permet de prendre en compte le sarcasme et les notions complexes.
       </p>
       <ul class="mt-4 space-y-2 text-sm text-gray-500 text-left">
         <li class="flex items-center">- Détection des nuances et de l'ironie.</li>
         <li class="flex items-center">- Compréhension des doubles sens.</li>
-        <li class="flex items-center">- Score de confiance sur 5 niveaux de polarité.</li>
+        <li class="flex items-center">- Score de confiance sur 5 niveaux.</li>
       </ul>
     </div>
 
     <div class="bg-white p-10 w-[450px] rounded-[2rem] shadow-xl border border-blue-50 transition hover:scale-105 duration-300">
       <div class="flex items-center mb-6">
         <div class="bg-blue-100 p-3 rounded-full mr-4">
-          <span class="text-3xl">📡</span>
+          <span class="text-3xl">2</span>
         </div>
         <h3 class="font-extrabold text-2xl text-gray-800">API TMDB</h3>
       </div>
       <p class="text-gray-600 leading-relaxed text-left">
-        Nous obtenons les avis de films grâce à l'API <strong>The Movie Database (TMDB)</strong> pour extraire des flux de critiques en temps réel dans une variété de langues. Cette synergie permet de coupler l'analyse de sentiment avec des métadonnées riches.
+        Nous obtenons les avis de films grâce à l'API <strong>The Movie Database (TMDB)</strong> pour extraire des avis de films en temps réel dans une variété de langues.<br>
+        Cette synergie permet de combiner l'analyse de sentiment avec des métadonnées riches afin d'avoir un avis représentatif.
       </p>
       <ul class="mt-4 space-y-2 text-sm text-gray-500 text-left">
         <li class="flex items-center">- Comparaison avec les notes spectateurs.</li>
@@ -84,8 +96,8 @@
     <div class="max-w-4xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
       <p>&copy; 2026 Kinogni. Propulsé par le modèle d'IA BERT et l'API TMDB.</p>
       <div class="flex space-x-6 mt-4 md:mt-0">
-        <a href="#" class="hover:text-blue-600 transition">Confidentialité</a>
-        <a href="#" class="hover:text-blue-600 transition">Documentation API</a>
+        <a href="/confidentialite" class="hover:text-blue-600 transition">Confidentialité</a>
+        <a href="https://developer.themoviedb.org/docs" target="_blank" rel="noopener" class="hover:text-blue-600 transition">Documentation API</a>
         <a href="#" class="hover:text-blue-600 transition">Contact</a>
       </div>
     </div>

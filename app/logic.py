@@ -1,23 +1,12 @@
 import torch
 import requests
-from transformers import AutoTokenizer, AutoModelForSequenceClassification # Analyse de sentiments
-from passlib.context import CryptContext
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from app.models import Film
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 
 # Initialisation BERT
 tokenizer = AutoTokenizer.from_pretrained('nlptown/bert-base-multilingual-uncased-sentiment')
 model = AutoModelForSequenceClassification.from_pretrained('nlptown/bert-base-multilingual-uncased-sentiment')
-
-# Initialisation Sécurité
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def hash_password(password: str):
-    return pwd_context.hash(password)
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
 
 # Analyse de sentiments
 def sentiment_analysis(reviews):
@@ -43,22 +32,13 @@ def sentiment_analysis(reviews):
             continue
 
         try:
-            tokens = tokenizer.encode(content[:512], return_tensors='pt')
+            inputs = tokenizer(content, max_length=512, truncation=True, return_tensors='pt')
             with torch.no_grad():
-                outputs = model(tokens)
-            
+                outputs = model(**inputs)
+
             logits = outputs.logits
-            print(logits)
-            # L'index BERT (0 à 4)
             prediction = torch.argmax(logits, dim=1).item()
-            
-            # Calcul probabilité (0.0 à 1.0)
             prob = torch.softmax(logits, dim=1)[0][prediction].item()
-            
-            # Résultat final
-            print(prob)
-            
-            # On récupère le label 
             label_final = labels_map[prediction]
             
             sentiments.append([label_final, prob])
@@ -102,6 +82,30 @@ def verification_tmdb(nom, db, API_KEY):
         db.merge(new_film)
     db.commit()
     return films
+
+def generer_synthese(sentiments: list) -> dict:
+    positifs = sum(1 for label, _ in sentiments if label in ("Positif", "Très positif"))
+    negatifs = sum(1 for label, _ in sentiments if label in ("Mauvais", "Très mauvais"))
+    neutres  = sum(1 for label, _ in sentiments if label == "Mitigé")
+    total = positifs + negatifs + neutres
+
+    if total == 0:
+        verdict = "Aucun avis analysé"
+    else:
+        ratio = positifs / total
+        if ratio >= 0.7:
+            verdict = "Très bien reçu"
+        elif ratio >= 0.5:
+            verdict = "Bien reçu"
+        elif negatifs / total >= 0.7:
+            verdict = "Très mal reçu"
+        elif negatifs / total >= 0.5:
+            verdict = "Mal reçu"
+        else:
+            verdict = "Avis mitigés"
+
+    return {"verdict": verdict, "positifs": positifs, "negatifs": negatifs, "neutres": neutres, "total": total}
+
 
 def afficher_rapport_terminal(y_true, y_pred):
     if not y_true or not y_pred or len(y_true) != len(y_pred):

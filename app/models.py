@@ -19,7 +19,7 @@ class Review(Base):
     auteur = Column(String)
     contenu = Column(String)
     edited = Column(Integer, default=0)
-    rating = Column(Integer, default=2)
+    rating = Column(Integer, default=None)
 
     film = relationship("Film", back_populates="reviews")
 

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Politique de confidentialité / Kinogni</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800 font-sans antialiased">
+
+  <nav class="flex justify-between items-center bg-gray-200 px-6 py-4 shadow">
+    <a href="/" class="text-2xl font-bold text-blue-700">Kinogni</a>
+    <ul class="flex space-x-6 items-center">
+      <li><button onclick="checkAccess()" class="bg-blue-600 text-white px-4 py-2 rounded transition hover:scale-105 duration-300">Dashboard</button></li>
+      <li><button onclick="document.getElementById('loginModal').classList.remove('hidden')">Connexion</button></li>
+      <li><button onclick="document.getElementById('registerModal').classList.remove('hidden')" class="font-bold">Inscription</button></li>
+    </ul>
+  </nav>
+
+  <main class="max-w-3xl mx-auto px-4 py-16">
+
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Politique de confidentialité</h1>
+    <p class="text-sm text-gray-400 mb-12">Dernière mise à jour : mai 2026</p>
+
+    <div class="space-y-10 text-sm text-gray-600 leading-relaxed">
+
+      <section>
+        <p>
+          Arza est un service gratuit développé par Ismaël Berghioua. Cette page explique clairement
+          quelles informations sont collectées quand vous utilisez le site, de quelle manière
+          et ce que vous pouvez faire si vous souhaitez y accéder ou les supprimer.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-base font-semibold text-gray-900 mb-3">La collecte</h2>
+        <p class="mb-4">
+          Pour créer un compte, il faut une adresse e-mail, un nom (facultatif), et un mot de passe.
+          L'e-mail sert d'identifiant de connexion et, si vous avez activé la vérification,
+          à vous envoyer un lien unique à l'inscription. Le nom sert uniquement à personnaliser l'affichage.
+          Le mot de passe n'est jamais stocké en clair il est hashé (bcrypt) dès la réception,
+          même nous ne pouvons pas le lire.
+        </p>
+        <p>
+          Quand vous lancez une comparaison, vous saisissez une adresse ou autorisez la géolocalisation.
+          Ces coordonnées sont utilisées le temps du calcul pour estimer les distances jusqu'aux magasins.
+          On ne conserve pas l'historique de vos recherches.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-base font-semibold text-gray-900 mb-3">Ce qu'on ne fait pas</h2>
+        <p>
+          On ne vend pas vos données. On n'a pas de régie publicitaire. On ne suit pas votre navigation
+          avec des trackers ou des cookies tiers. Le site fonctionne exactement pareil
+          si vous bloquez tous les cookies dans votre navigateur.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-base font-semibold text-gray-900 mb-3">Stockage des données</h2>
+        <p>
+          Le site tourne sur Render et la base de données
+          est hébergée chez Supabase sur des serveurs en Union européenne.
+          Les e-mails sont envoyés grâce à Resend.
+          Ces trois prestataires sont soumis à des obligations contractuelles strictes et ne peuvent
+          pas utiliser vos données à leurs propres fins.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-base font-semibold text-gray-900 mb-3">Combien de temps on garde vos données</h2>
+        <p>
+          Vos données restent associées à votre compte tant que celui-ci est actif.
+          Si vous demandez la suppression de votre compte, tout est effacé dans les 30 jours.
+          Il n'y a pas de période de rétention cachée après résiliation.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-base font-semibold text-gray-900 mb-3">Vos droits</h2>
+        <p class="mb-4">
+          Le RGPD vous donne plusieurs droits sur vos données personnelles : y accéder, les corriger,
+          les exporter, ou demander leur suppression.
+          Vous pouvez aussi vous opposer à un traitement si vous avez une raison légitime de le faire.
+        </p>
+        <p>
+          Pour exercer l'un de ces droits, envoyez un e-mail à
+          <a href="mailto:berghiouaismael@gmail.com" class="text-blue-600 hover:underline">berghiouaismael@gmail.com</a>
+          en précisant votre demande. On vous répondra dans un délai maximum de 30 jours.
+          Si la réponse ne vous satisfait pas, vous avez la possibilité de déposer une plainte auprès de la
+          <a href="https://www.cnil.fr" target="_blank" rel="noopener" class="text-blue-600 hover:underline">CNIL</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-base font-semibold text-gray-900 mb-3">Évolutions de cette politique</h2>
+        <p>
+          Si cette politique change de façon significative, par exemple si on ajoutait un outil d'analyse,
+          on vous en informerait par e-mail avant que le changement entre en vigueur.
+          La date en haut de cette page indique toujours la version en cours.
+        </p>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-200 py-8 mt-16">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-400">
+      <span class="font-semibold text-blue-700 text-sm">Kinogni</span>
+      <p>Données Chausson · Castorama · Brico Dépôt</p>
+      <a href="mailto:berghiouaismael@gmail.com" class="hover:text-blue-600 transition-colors underline underline-offset-2">Contact</a>
+    </div>
+  </footer>
+
+  <div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg w-80 shadow-lg text-center">
+      <h2 class="text-2xl font-bold mb-4">Connexion</h2>
+      <input type="text" id="lUser" placeholder="Nom d'utilisateur" class="w-full mb-3 p-2 border rounded">
+      <input type="password" id="lPass" placeholder="Mot de passe" class="w-full mb-3 p-2 border rounded">
+      <button onclick="connexion()" class="w-full bg-blue-600 text-white py-2 rounded font-bold">Se connecter</button>
+      <button onclick="document.getElementById('loginModal').classList.add('hidden')" class="mt-3 text-gray-500">Fermer</button>
+    </div>
+  </div>
+
+  <div id="registerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg w-80 shadow-lg text-center">
+      <h2 class="text-2xl font-bold mb-4">Inscription</h2>
+      <input type="email" id="rMail" placeholder="Email" class="w-full mb-3 p-2 border rounded">
+      <input type="text" id="rUser" placeholder="Nom d'utilisateur" class="w-full mb-3 p-2 border rounded">
+      <input type="password" id="rPass" placeholder="Mot de passe" class="w-full mb-3 p-2 border rounded">
+      <button onclick="inscription()" class="w-full bg-green-600 text-white py-2 rounded font-bold">Créer un compte</button>
+      <button onclick="document.getElementById('registerModal').classList.add('hidden')" class="mt-3 text-gray-500">Fermer</button>
+    </div>
+  </div>
+
+  <script>
+    function checkAccess() {
+      localStorage.getItem('user') ? window.location.href = '/dashboard' : document.getElementById('loginModal').classList.remove('hidden');
+    }
+
+    async function connexion() {
+      const username = document.getElementById('lUser').value;
+      const password = document.getElementById('lPass').value;
+      const response = await fetch('/user/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = '/dashboard';
+      } else alert("Erreur d'identifiants");
+    }
+
+    async function inscription() {
+      const mail = document.getElementById('rMail').value;
+      const username = document.getElementById('rUser').value;
+      const password = document.getElementById('rPass').value;
+      const response = await fetch('/user/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mail, username, password})
+      });
+      if (response.ok) {
+        alert("Succès ! Connectez-vous.");
+        document.getElementById('registerModal').classList.add('hidden');
+      } else alert("Erreur d'inscription");
+    }
+  </script>
+
+</body>
+</html>

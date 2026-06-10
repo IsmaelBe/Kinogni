@@ -6,16 +6,22 @@ from sqlalchemy.orm import Session
 from dotenv import dotenv_values
 import uuid
 import requests
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Imports locaux
-from app.models import Film, Review, Users
+from app.models import Film, Review
 from app.database import get_db
-from app.schemas import ReviewMAJ, ReviewCreate, UserCreate, UserLogin
-from app.logic import sentiment_analysis, verification_tmdb, hash_password, verify_password, afficher_rapport_terminal
-
+from app.schemas import ReviewMAJ, ReviewCreate
+from app.logic import sentiment_analysis, verification_tmdb, afficher_rapport_terminal, generer_synthese
+from app.auth import router as auth_router
+limiter = Limiter(key_func=get_remote_address)
 templates = Jinja2Templates(directory="templates")
 app = FastAPI()
-
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.include_router(auth_router)
 # Configuration CORS
 app.add_middleware(
     CORSMiddleware,
@@ -37,6 +43,10 @@ def accueil(request: Request):
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
+
+@app.get("/confidentialite", response_class=HTMLResponse)
+def confidentialite(request: Request):
+    return templates.TemplateResponse("confidentialite.html", {"request": request})
 
 #Recherche film par nom, pour garder les espaces, on le met sous forme de query
 #Exemple: http://127.0.0.1:8000/films/liste?nom=The Dark Knight
@@ -62,7 +72,8 @@ def obtenir_films(nom: str, db: Session = Depends(get_db)):
 
 # Ajoute un avis sur un film précis
 @app.post("/films/reviews/add")
-def add_review(rev: ReviewCreate, db: Session = Depends(get_db)):
+@limiter.limit("2/minute")
+def add_review(request: Request, rev: ReviewCreate, db: Session = Depends(get_db)):
     film_existe = db.query(Film).filter(Film.film_id == rev.film_id).first()
     if not film_existe:
         raise HTTPException(status_code=404, detail="Film absent de la base")
@@ -85,7 +96,8 @@ def add_review(rev: ReviewCreate, db: Session = Depends(get_db)):
 
 # Met à jour un avis existant
 @app.put("/films/reviews/update/{id}")
-def update_review(id: str, rev: ReviewMAJ, db: Session = Depends(get_db)):
+@limiter.limit("2/minute")
+def update_review(request: Request, id: str, rev: ReviewMAJ, db: Session = Depends(get_db)):
     review = db.query(Review).filter(Review.review_id == id).first()
 
     if not review:
@@ -105,7 +117,8 @@ def update_review(id: str, rev: ReviewMAJ, db: Session = Depends(get_db)):
 
 # Supprime un avis existant
 @app.delete("/films/reviews/delete/{id}")
-def delete_review(id: str, db: Session = Depends(get_db)):
+@limiter.limit("2/minute")
+def delete_review(request: Request, id: str, db: Session = Depends(get_db)):
     review_cible = db.query(Review).filter(Review.review_id == id).first()
 
     if not review_cible:
@@ -117,32 +130,10 @@ def delete_review(id: str, db: Session = Depends(get_db)):
         "message": "Review mise à jour avec succès (message supprimé)",
     }
 
-# Connexion de l'utilisateur
-@app.post("/user/login")
-def login(user_infos: UserLogin, db: Session = Depends(get_db)):
-    # Chercher l'utilisateur
-    user = db.query(Users).filter(Users.username == user_infos.username).first()
-
-    # Erreur si on le trouve pas
-    if not user or not verify_password(user_infos.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Nom d'utilisateur ou mot de passe incorrect"
-        )
-
-    # On renvoie si c'est bon
-    return {
-        "message": "Connexion réussie",
-        "user": {
-            "id": user.users_id,
-            "username": user.username,
-            "mail": user.mail
-        }
-    }
-
 # Reviews d'un film précis selon l'identifiant
 @app.get("/films/reviews/{film_id}")
-def get_reviews(film_id: int, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def get_reviews(request: Request, film_id: int, db: Session = Depends(get_db)):
     try:
         # On selectionne le nom de film, date sortie, l'auteur de la review et le contenu
         film = db.query(Film).filter(Film.film_id == film_id).first()
@@ -170,10 +161,11 @@ def get_reviews(film_id: int, db: Session = Depends(get_db)):
 
         # Analyse sur la liste
         sentiments, y_pred, y_true = sentiment_analysis(tous_les_avis)
-        afficher_rapport_terminal(y_true,y_pred)
+        afficher_rapport_terminal(y_true, y_pred)
         return {
             "data": tous_les_avis,
-            "Sentiments": sentiments
+            "Sentiments": sentiments,
+            "synthese": generer_synthese(sentiments)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur interne : {e}")

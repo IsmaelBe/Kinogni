@@ -12,6 +12,7 @@
     <div class="text-2xl font-bold text-blue-700">Kinogni</div>
     <div class="flex items-center gap-4 text-sm italic">
       <span id="userInfo"></span>
+      <a href="/confidentialite" class="text-sm text-gray-500 hover:text-blue-600 transition">Confidentialité</a>
       <a href="/" onclick="localStorage.clear()" class="text-red-500 font-bold">Déconnexion</a>
     </div>
   </nav>
@@ -33,7 +34,7 @@
   <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
     <div class="bg-white p-8 rounded-xl text-center shadow-xl">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p class="font-bold">Analyse en cours...</p>
+      <p class="font-bold">Analyse en cours</p>
     </div>
   </div>
 
@@ -76,12 +77,32 @@
         const json = await response.json();
         const reviews = json.data || [];
         const sentiments = json.Sentiments || [];
+        const synthese = json.synthese || null;
+
+        const verdictColor = {
+          "Très bien reçu": "border-green-500 bg-green-50 text-green-700",
+          "Bien reçu":      "border-green-400 bg-green-50 text-green-600",
+          "Avis mitigés":   "border-yellow-400 bg-yellow-50 text-yellow-700",
+          "Mal reçu":       "border-red-400 bg-red-50 text-red-600",
+          "Très mal reçu":  "border-red-500 bg-red-50 text-red-700",
+        };
+        const syntheseHtml = synthese ? `
+          <div class="border-l-8 rounded p-4 mb-6 ${verdictColor[synthese.verdict] || 'border-gray-300 bg-gray-50 text-gray-600'}">
+            <p class="text-xl font-bold mb-2">${synthese.verdict}</p>
+            <div class="flex gap-4 text-sm font-medium">
+              <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full"> ${synthese.positifs} positif${synthese.positifs > 1 ? 's' : ''}</span>
+              <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full"> ${synthese.negatifs} négatif${synthese.negatifs > 1 ? 's' : ''}</span>
+              <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full"> ${synthese.neutres} mitigé${synthese.neutres > 1 ? 's' : ''}</span>
+              <span class="ml-auto text-xs self-center opacity-60">${synthese.total} avis analysés</span>
+            </div>
+          </div>` : '';
 
         let html = `
           <div class="flex justify-between items-center mb-6">
             <button onclick="location.reload()" class="text-blue-600 underline font-bold">← Retour</button>
             <button onclick="ouvrirZoneAjout()" class="bg-blue-600 text-white px-4 py-2 rounded shadow font-bold">+ Ajouter mon avis</button>
           </div>
+          ${syntheseHtml}
           <div id="zoneSaisie"></div>
         `;
 
