@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException, status, Request, Depends # Application FastAPI, Gestion erreurs HTTP
+from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse # Renvoyer des fichiers HTML
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from dotenv import dotenv_values
@@ -10,36 +10,38 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-# Imports locaux
-from app.models import Film, Review
-from app.database import get_db
+from app.models import Film, Review, Users
+from app.database import get_db, engine, Base
 from app.schemas import ReviewMAJ, ReviewCreate
 from app.logic import sentiment_analysis, verification_tmdb, afficher_rapport_terminal, generer_synthese
-from app.auth import router as auth_router
+from app.auth import router as auth_router, get_current_user
+
+# Crée les tables au démarrage si elles n'existent pas encore
+Base.metadata.create_all(bind=engine)
+
 limiter = Limiter(key_func=get_remote_address)
 templates = Jinja2Templates(directory="templates")
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(auth_router)
-# Configuration CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Autorise toutes les origines (utile en développement)
+    allow_origins=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
     allow_credentials=True,
-    allow_methods=["*"], # Autorise GET, POST, etc.
-    allow_headers=["*"], # Autorise tous les headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Import variables environnement et connexion base Postgres
 config = dotenv_values(".env")
 
-# Route pour la page d'accueil (Présentation)
 @app.get("/", response_class=HTMLResponse)
 def accueil(request: Request):
     return templates.TemplateResponse("site.html", {"request": request})
 
-# Route pour le Dashboard (Recherche et Analyse)
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
@@ -48,32 +50,25 @@ def dashboard(request: Request):
 def confidentialite(request: Request):
     return templates.TemplateResponse("confidentialite.html", {"request": request})
 
-#Recherche film par nom, pour garder les espaces, on le met sous forme de query
-#Exemple: http://127.0.0.1:8000/films/liste?nom=The Dark Knight
 @app.get("/films/liste")
 def obtenir_films(nom: str, db: Session = Depends(get_db)):
-    #%s pour éviter les injections SQL
     films = db.query(Film).filter(Film.titre.ilike(f"%{nom}%")).all()
 
-    if films: 
+    if films:
         return {'data': films}
     else:
-        # Si le nom de film n'est pas dans la base de données
         films_tmdb = verification_tmdb(nom, db, config['API_KEY'])
         if films_tmdb:
-            # Le film est sur l'API TMDB
             return {'data': films_tmdb}
         else:
-            # Erreur 404
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Aucun film trouvé dans la base locale ni sur TMDB"
             )
 
-# Ajoute un avis sur un film précis
 @app.post("/films/reviews/add")
 @limiter.limit("2/minute")
-def add_review(request: Request, rev: ReviewCreate, db: Session = Depends(get_db)):
+def add_review(request: Request, rev: ReviewCreate, db: Session = Depends(get_db), current_user: Users = Depends(get_current_user)):
     film_existe = db.query(Film).filter(Film.film_id == rev.film_id).first()
     if not film_existe:
         raise HTTPException(status_code=404, detail="Film absent de la base")
@@ -81,7 +76,7 @@ def add_review(request: Request, rev: ReviewCreate, db: Session = Depends(get_db
     new_rev = Review(
         review_id=str(uuid.uuid4()),
         film_id=rev.film_id,
-        auteur=rev.username, # On utilise le pseudo comme identifiant auteur
+        auteur=current_user.username,
         contenu=rev.contenu,
         edited=0
     )
@@ -94,16 +89,17 @@ def add_review(request: Request, rev: ReviewCreate, db: Session = Depends(get_db
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-# Met à jour un avis existant
 @app.put("/films/reviews/update/{id}")
 @limiter.limit("2/minute")
-def update_review(request: Request, id: str, rev: ReviewMAJ, db: Session = Depends(get_db)):
+def update_review(request: Request, id: str, rev: ReviewMAJ, db: Session = Depends(get_db), current_user: Users = Depends(get_current_user)):
     review = db.query(Review).filter(Review.review_id == id).first()
 
     if not review:
         raise HTTPException(status_code=404, detail=f"Aucune review trouvée avec l'id {id}")
 
-    # Mise à jour du contenu et du champ "edited"
+    if review.auteur != current_user.username:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez modifier que vos propres avis")
+
     review.contenu = rev.contenu
     review.edited = 1
     db.commit()
@@ -115,51 +111,47 @@ def update_review(request: Request, id: str, rev: ReviewMAJ, db: Session = Depen
         "nouveau_contenu": review.contenu
     }
 
-# Supprime un avis existant
 @app.delete("/films/reviews/delete/{id}")
 @limiter.limit("2/minute")
-def delete_review(request: Request, id: str, db: Session = Depends(get_db)):
+def delete_review(request: Request, id: str, db: Session = Depends(get_db), current_user: Users = Depends(get_current_user)):
     review_cible = db.query(Review).filter(Review.review_id == id).first()
 
     if not review_cible:
         raise HTTPException(status_code=404, detail=f"Aucune review trouvée avec l'id {id}")
-    
+
+    if review_cible.auteur != current_user.username:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez supprimer que vos propres avis")
+
     db.delete(review_cible)
     db.commit()
     return {
         "message": "Review mise à jour avec succès (message supprimé)",
     }
 
-# Reviews d'un film précis selon l'identifiant
 @app.get("/films/reviews/{film_id}")
 @limiter.limit("20/minute")
 def get_reviews(request: Request, film_id: int, db: Session = Depends(get_db)):
     try:
-        # On selectionne le nom de film, date sortie, l'auteur de la review et le contenu
         film = db.query(Film).filter(Film.film_id == film_id).first()
 
         if not film:
             raise HTTPException(status_code=404, detail="Film introuvable")
 
-        # Récupération avis locaux (base de données)
         reviews_locales = film.reviews or []
 
-        # Récupération avis TMDB
         API_KEY = config["API_KEY"]
         url = f"https://api.themoviedb.org/3/movie/{film_id}/reviews"
         params = {"api_key": API_KEY}
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, timeout=5)
         reviews_tmdb = response.json().get("results", []) if response.status_code == 200 else []
         tous_les_avis = []
         for r in reviews_locales:
-            # On utilise 'auteur' pour comparer avec le username du localStorage
             tous_les_avis.append({"review_id": r.review_id, "auteur": r.auteur, "contenu": r.contenu, "edited": r.edited, "rating": r.rating})
-        
+
         for r in reviews_tmdb:
             if not any(loc["contenu"] == r["content"] for loc in tous_les_avis):
                 tous_les_avis.append({"review_id": None, "auteur": r["author"], "contenu": r["content"], "edited": 0})
 
-        # Analyse sur la liste
         sentiments, y_pred, y_true = sentiment_analysis(tous_les_avis)
         afficher_rapport_terminal(y_true, y_pred)
         return {
@@ -167,6 +159,8 @@ def get_reviews(request: Request, film_id: int, db: Session = Depends(get_db)):
             "Sentiments": sentiments,
             "synthese": generer_synthese(sentiments)
         }
+    except HTTPException:
+        # On laisse passer les erreurs HTTP volontaires (404) sans les masquer en 500
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur interne : {e}")
- 

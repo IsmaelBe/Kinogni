@@ -21,60 +21,66 @@
   <main class="max-w-3xl mx-auto px-4 py-16">
 
     <h1 class="text-3xl font-bold text-gray-900 mb-2">Politique de confidentialité</h1>
-    <p class="text-sm text-gray-400 mb-12">Dernière mise à jour : mai 2026</p>
+    <p class="text-sm text-gray-400 mb-12">Dernière mise à jour : juillet 2026</p>
 
     <div class="space-y-10 text-sm text-gray-600 leading-relaxed">
 
       <section>
         <p>
-          Arza est un service gratuit développé par Ismaël Berghioua. Cette page explique clairement
-          quelles informations sont collectées quand vous utilisez le site, de quelle manière
-          et ce que vous pouvez faire si vous souhaitez y accéder ou les supprimer.
+          Kinogni est un projet étudiant gratuit développé par Ismaël Berghioua. C'est une
+          application d'analyse de sentiments sur les avis de films, conçue pour être
+          <strong>exécutée en local</strong>, sur votre propre machine. Cette page explique
+          quelles informations sont utilisées quand vous vous servez de l'application,
+          de quelle manière, et ce que vous pouvez faire à leur sujet.
         </p>
       </section>
 
       <section>
-        <h2 class="text-base font-semibold text-gray-900 mb-3">La collecte</h2>
+        <h2 class="text-base font-semibold text-gray-900 mb-3">Les données utilisées</h2>
         <p class="mb-4">
-          Pour créer un compte, il faut une adresse e-mail, un nom (facultatif), et un mot de passe.
-          L'e-mail sert d'identifiant de connexion et, si vous avez activé la vérification,
-          à vous envoyer un lien unique à l'inscription. Le nom sert uniquement à personnaliser l'affichage.
-          Le mot de passe n'est jamais stocké en clair il est hashé (bcrypt) dès la réception,
-          même nous ne pouvons pas le lire.
+          Pour créer un compte, il faut un nom d'utilisateur, une adresse e-mail et un mot de passe.
+          Le nom d'utilisateur sert d'identifiant de connexion et signe les avis que vous publiez.
+          Le mot de passe n'est jamais stocké en clair : il est haché (bcrypt) dès sa réception,
+          il est donc impossible de le relire. Une fois connecté, un jeton de session (JWT) est
+          conservé dans votre navigateur pour vous maintenir authentifié.
         </p>
         <p>
-          Quand vous lancez une comparaison, vous saisissez une adresse ou autorisez la géolocalisation.
-          Ces coordonnées sont utilisées le temps du calcul pour estimer les distances jusqu'aux magasins.
-          On ne conserve pas l'historique de vos recherches.
+          Les avis que vous rédigez sont enregistrés avec votre nom d'utilisateur.
+          Lorsque vous recherchez un film ou consultez ses avis, votre requête est envoyée à
+          l'API publique <strong>TMDB (The Movie Database)</strong> afin de récupérer les films et les
+          avis correspondants. Aucune autre donnée personnelle n'est transmise à des tiers.
         </p>
       </section>
 
       <section>
         <h2 class="text-base font-semibold text-gray-900 mb-3">Ce qu'on ne fait pas</h2>
         <p>
-          On ne vend pas vos données. On n'a pas de régie publicitaire. On ne suit pas votre navigation
-          avec des trackers ou des cookies tiers. Le site fonctionne exactement pareil
-          si vous bloquez tous les cookies dans votre navigateur.
+          On ne vend pas vos données. Il n'y a pas de publicité, pas de régie publicitaire.
+          On ne suit pas votre navigation avec des trackers ou des cookies tiers : le seul stockage
+          utilisé dans le navigateur est le jeton qui vous garde connecté. Aucune donnée n'est
+          envoyée à un service externe, à l'exception des requêtes vers TMDB nécessaires à la
+          recherche de films.
         </p>
       </section>
 
       <section>
         <h2 class="text-base font-semibold text-gray-900 mb-3">Stockage des données</h2>
         <p>
-          Le site tourne sur Render et la base de données
-          est hébergée chez Supabase sur des serveurs en Union européenne.
-          Les e-mails sont envoyés grâce à Resend.
-          Ces trois prestataires sont soumis à des obligations contractuelles strictes et ne peuvent
-          pas utiliser vos données à leurs propres fins.
+          Kinogni fonctionne en local : vos données (compte et avis) sont enregistrées dans une
+          base de données PostgreSQL installée sur la machine qui exécute l'application, et non sur
+          des serveurs distants. Le modèle d'analyse (BERT) tourne lui aussi localement, les avis
+          ne quittent donc pas votre machine pour être analysés. Le seul service externe contacté
+          est l'API TMDB, pour récupérer les films et leurs avis publics.
         </p>
       </section>
 
       <section>
-        <h2 class="text-base font-semibold text-gray-900 mb-3">Combien de temps on garde vos données</h2>
+        <h2 class="text-base font-semibold text-gray-900 mb-3">Combien de temps vos données sont conservées</h2>
         <p>
-          Vos données restent associées à votre compte tant que celui-ci est actif.
-          Si vous demandez la suppression de votre compte, tout est effacé dans les 30 jours.
-          Il n'y a pas de période de rétention cachée après résiliation.
+          Vos données restent enregistrées dans la base locale tant que le compte existe.
+          Vous pouvez supprimer vos propres avis à tout moment depuis l'application. Comme la base
+          de données se trouve sur votre machine, vous en gardez le contrôle direct et pouvez
+          l'effacer vous-même à tout instant.
         </p>
       </section>
 
@@ -97,9 +103,8 @@
       <section>
         <h2 class="text-base font-semibold text-gray-900 mb-3">Évolutions de cette politique</h2>
         <p>
-          Si cette politique change de façon significative, par exemple si on ajoutait un outil d'analyse,
-          on vous en informerait par e-mail avant que le changement entre en vigueur.
-          La date en haut de cette page indique toujours la version en cours.
+          Kinogni étant un projet étudiant, cette politique peut évoluer avec l'application.
+          La date affichée en haut de cette page indique toujours la version en cours.
         </p>
       </section>
 
@@ -109,7 +114,6 @@
   <footer class="border-t border-gray-200 py-8 mt-16">
     <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-400">
       <span class="font-semibold text-blue-700 text-sm">Kinogni</span>
-      <p>Données Chausson · Castorama · Brico Dépôt</p>
       <a href="mailto:berghiouaismael@gmail.com" class="hover:text-blue-600 transition-colors underline underline-offset-2">Contact</a>
     </div>
   </footer>
@@ -151,6 +155,7 @@
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.access_token);
         window.location.href = '/dashboard';
       } else alert("Erreur d'identifiants");
     }

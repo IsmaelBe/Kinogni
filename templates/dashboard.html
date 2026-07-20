@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kinogni - Dashboard</title>
+  <title>Kinogni / Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -40,7 +40,8 @@
 
   <script>
     const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) window.location.href = '/';
+    const token = localStorage.getItem('token');
+    if (!user || !token) window.location.href = '/';
     else document.getElementById('userInfo').innerText = "Session : " + user.username;
 
     let currentFilmId = null;
@@ -155,7 +156,7 @@
       try {
           const res = await fetch('/films/reviews/add', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
             body: JSON.stringify(payload)
           });
 
@@ -175,7 +176,7 @@
       const contenu = document.getElementById(`edit-${id}`).value;
       const res = await fetch(`/films/reviews/update/${id}`, {
         method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
         body: JSON.stringify({ contenu: contenu })
       });
       if(res.ok) await analyseFilm(currentFilmId);
@@ -183,7 +184,10 @@
 
     async function supprimerAvis(id) {
       if(!confirm("Supprimer ?")) return;
-      const res = await fetch(`/films/reviews/delete/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/films/reviews/delete/${id}`, {
+        method: 'DELETE',
+        headers: {'Authorization': `Bearer ${token}`}
+      });
       if(res.ok) await analyseFilm(currentFilmId);
     }
     

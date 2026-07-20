@@ -1,56 +1,96 @@
-
 # Kinogni
 
-Kinogni - application d'analyse de Sentiments
+**Application locale d'analyse de sentiments sur les avis de films.**
 
-Application (en local) permettant de rechercher des films, de gérer des avis personnalisés et d'analyser automatiquement leur ton grâce à l'intelligence artificielle.
+Kinogni permet de rechercher un film, de lire et publier des avis, puis d'analyser
+automatiquement le ressenti de ces avis grâce à un modèle d'intelligence artificielle
+(**BERT**). L'application combine une API REST (FastAPI), une base de données PostgreSQL,
+l'API **TMDB** (pour récupérer films et avis réels) et le modèle BERT (pour classer chaque
+avis sur 5 niveaux, de « Très mauvais » à « Très positif »).
 
-# Fonctionnalités
+> ⚠️ **Projet étudiant, conçu pour tourner en local.** Le modèle BERT et la base de
+> données s'exécutent sur votre propre machine ; l'application n'est pas déployée en ligne.
 
-    Recherche de films via l'API TMDB.
+---
 
-    Système de gestion des avis (Ajout, Modification, Suppression).
+## Ce que fait l'application
 
-    Analyse automatique des sentiments (modèle BERT).
+1. **Recherche de films** — par titre. Si le film n'est pas déjà en base, il est récupéré
+   automatiquement depuis l'API TMDB et enregistré.
+2. **Gestion des avis** — inscription / connexion (mots de passe hachés, authentification par
+   token JWT), puis ajout, modification et suppression de ses propres avis.
+3. **Analyse de sentiments** — pour un film, les avis TMDB et les avis locaux sont réunis,
+   puis chaque avis est classé par BERT sur 5 niveaux avec un score de confiance. Une
+   **synthèse globale** (« Bien reçu », « Avis mitigés », etc.) est calculée.
 
-    Inscription et connexion sécurisées.
+---
 
-# Installation
-1. Dépendances
+## Prérequis
 
-Installez les bibliothèques nécessaires à l'aide du fichier fourni :
+- **Python 3.13**
+- **PostgreSQL** installé et démarré sur `localhost`, avec une base de données nommée `projet`
+- Une **clé API TMDB** (gratuite sur https://www.themoviedb.org/settings/api)
 
-    pip install -r requirements.txt
-2. Configuration
+---
 
-Créez un fichier .env à la racine du projet avec les variables suivantes :
-Extrait de code:
+## Installation
 
-    USER=votre_utilisateur_postgres
-    MDP_BDD=votre_mot_de_passe
-    API_KEY=votre_cle_api_tmdb
+### 1. Dépendances
 
-3. Lancement
+```bash
+pip install -r requirements.txt
+```
 
-Pour démarrer le serveur de développement :
+> Le premier lancement télécharge le modèle BERT (~700 Mo) depuis Hugging Face. Prévoir
+> quelques minutes et assez de RAM (le modèle est chargé en mémoire au démarrage).
 
-    uvicorn app.app:app --reload
+### 2. Base de données
 
-L'application sera disponible à l'adresse : http://127.0.0.1:8000
+Créez la base PostgreSQL attendue (les tables, elles, sont créées automatiquement au
+premier démarrage) :
 
+```bash
+createdb projet
+```
 
-# Structure du projet
+### 3. Configuration
 
-Le code est segmenté pour une meilleure lisibilité :
+Créez un fichier `.env` à la racine du projet avec ces variables :
 
-    app/app.py : Routes et configuration FastAPI.
+```
+USER=votre_utilisateur_postgres
+MDP_BDD=votre_mot_de_passe
+API_KEY=votre_cle_api_tmdb
+SECRET_KEY=une_longue_chaine_aleatoire_secrete
+```
 
-    app/logic.py : Analyse de sentiments BERT, appels API TMDB et sécurité.
+`SECRET_KEY` sert à signer les tokens de connexion (JWT) : elle est **obligatoire**.
+Vous pouvez en générer une avec :
 
-    app/schemas.py : Modèles Pydantic pour la validation des entrées.
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
 
-    app/models.py : Définition des tables de la base de données.
+### 4. Lancement
 
-    app/database.py : Connexion à PostgreSQL.
+```bash
+uvicorn app.app:app --reload
+```
 
-    templates/ : Pages HTML de l'interface.
+L'application est alors disponible sur **http://127.0.0.1:8000**.
+
+---
+
+## Structure du projet
+
+Le code est découpé par responsabilité :
+
+| Fichier | Rôle |
+|---|---|
+| `app/app.py` | Routes et configuration FastAPI (films, avis, rate limiting, CORS). |
+| `app/auth.py` | Inscription, connexion, hachage des mots de passe et authentification JWT. |
+| `app/logic.py` | Analyse de sentiments BERT, appels à l'API TMDB et synthèse. |
+| `app/schemas.py` | Modèles Pydantic pour valider les données reçues. |
+| `app/models.py` | Tables de la base de données (SQLAlchemy). |
+| `app/database.py` | Connexion à PostgreSQL. |
+| `templates/` | Pages HTML de l'interface (accueil, dashboard, confidentialité). |
